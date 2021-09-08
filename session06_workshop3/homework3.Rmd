@@ -168,14 +168,14 @@ Boxplots show how the medians of the two distributions compare, but we can also 
               )
 
 
-
+print(yes_result)
 print(paste0("the confidence interval is ",  as.numeric(yes_result['yes_low_CI']), " - ", as.numeric(yes_result['yes_high_CI']) ))
 
 
 
 #we can get a very similar result using the bootstrap approach for confidence intervals by infer package:
 
-boot_dist <- physical %>% 
+boot_dist1 <- physical %>% 
    filter(!is.na(physical_3plus)) %>% 
    filter(physical_3plus == "yes") %>% 
   
@@ -186,8 +186,16 @@ boot_dist <- physical %>%
   # Calculate mean of each bootstrap sample
   calculate(stat = "mean")
 
-boot_dist
-get_ci(boot_dist, level = 0.95, type ="percentile") 
+boot_dist1
+percentile_ci1 <- get_ci(boot_dist1, level = 0.95, type ="percentile") 
+
+#visualisation of the resulting bootstrap distribution and the CIs
+  visualize(boot_dist1) +
+  shade_ci(endpoints=percentile_ci1, fill="khaki") +
+  geom_vline(xintercept = yes_result$yes_low_CI, colour ="red") +
+  geom_vline(xintercept = yes_result$yes_high_CI, colour = "red") +
+  NULL
+  
 
 
 #physical_3plus == "no"
@@ -204,12 +212,12 @@ no_result <-physical %>%
               no_high_CI= no_mean + margin_of_error
 
 )
-
+print(no_result)
 print(paste0("the confidence interval is ",  as.numeric(no_result['no_low_CI']), " - ", as.numeric(no_result['no_high_CI']) ))
 
 #we can also get a very similar result using the bootstrap approach for confidence intervals by infer package:
 
-boot_dist <- physical %>% 
+boot_dist2 <- physical %>% 
    filter(!is.na(physical_3plus)) %>% 
    filter(physical_3plus == "no") %>% 
   
@@ -220,9 +228,15 @@ boot_dist <- physical %>%
   # Calculate mean of each bootstrap sample
   calculate(stat = "mean")
 
-get_ci(boot_dist, level = 0.95, type ="percentile") 
+percentile_ci <- get_ci(boot_dist, level = 0.95, type ="percentile") 
 
-
+#visualisation of the resulting bootstrap distribution and the CIs
+  visualize(boot_dist) +
+  shade_ci(endpoints=percentile_ci, fill="khaki") +
+  geom_vline(xintercept = no_result$no_low_CI, colour ="red") +
+  geom_vline(xintercept = no_result$no_high_CI, colour = "red") +
+  NULL
+  
 
 
    
@@ -232,11 +246,15 @@ There is an observed difference of about 1.77kg (68.44 - 66.67), and we notice t
 
 ## Hypothesis test with formula
 
-Write the null and alternative hypotheses for testing whether mean weights are different for those who exercise at least times a week and those who don’t.
+Write the null and alternative hypotheses for testing whether mean weights are different for those who exercise at least 3 times a week and those who don’t.
 
+H0 = there's no difference in the weights of who exercise 3 times a week and more or who do not. 
+h1 = there's a difference in the weights of who exercise 3 times a week and more or who do not. 
 ```{r, t_test_using_R}
 
-t.test(weight ~ physical_3plus, data = yrbss)
+t.test(weight ~ physical$physical_3plus, data = yrbss)
+
+
 ```
 
 
@@ -249,7 +267,7 @@ Next, we will introduce a new function, `hypothesize`, that falls into the infer
 But first, we need to initialize the test, which we will save as `obs_diff`.
 
 ```{r, calc_obs_difference}
-obs_diff <- yrbss %>%
+obs_diff <- physical %>%
   specify(weight ~ physical_3plus) %>%
   calculate(stat = "diff in means", order = c("yes", "no"))
 
@@ -263,6 +281,8 @@ After you have initialized the test, you need to simulate the test on the null d
 
 
 ```{r, hypothesis_testing_using_infer_package}
+
+set.seed(1234)
 
 
 ```
