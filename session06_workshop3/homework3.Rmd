@@ -282,8 +282,19 @@ After you have initialized the test, you need to simulate the test on the null d
 
 ```{r, hypothesis_testing_using_infer_package}
 
-set.seed(1234)
-
+null_dist <- physical %>%
+  na.omit(physical)  %>%
+  # specify variables
+  specify(weight ~ physical_3plus) %>%
+  
+  # assume independence, i.e, there is no difference
+  hypothesize(null = "independence") %>%
+  
+  # generate 1000 reps, of type "permute"
+  generate(reps = 1000, type = "permute") %>%
+  
+  # calculate statistic of difference, namely "diff in means"
+  calculate(stat = "diff in means", order = c("yes", "no"))
 
 ```
 
