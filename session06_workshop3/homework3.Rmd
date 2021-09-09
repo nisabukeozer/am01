@@ -566,13 +566,21 @@ t.test(salary ~ gender, data = omega)
   # calculate statistic of difference, namely "diff in means"
   calculate(stat = "diff in means", order = c("female", "male"))
   
+
   
+  obs_diff3 <- omega %>%
+  specify(salary ~ gender) %>%
+  calculate(stat = "diff in means", order = c("female", "male"))
+
+obs_diff3
+
+
 #visualise the null distribution 
 null_dist_salary %>% visualize() +
-  shade_p_value(obs_stat = obs_diff, direction = "two-sided")
+  shade_p_value(obs_stat = obs_diff3, direction = "two-sided")
 
 null_dist_salary %>%
-  get_p_value(obs_stat = obs_diff, direction = "two_sided")
+  get_p_value(obs_stat = obs_diff3, direction = "two_sided")
 
 
 
@@ -580,6 +588,7 @@ null_dist_salary %>%
 
 > What can you conclude from your analysis? A couple of sentences would be enough
 
+Though the infer package returns a 0 p_value, it is impossible to have a p value of 0. Infer package sometimes returns p_values of 0 when the p-value is very small. When running the t-test, we got a p-value of 2e-04 which is very low and it confirms our hypothesis that inferpackage rounded down the p-value to 0. In conclusion  the null hypothesis is rejected and that there is a difference between the salaries of men and female. 
 
 ## Relationship Experience - Gender?
 
@@ -593,6 +602,29 @@ favstats (experience ~ gender, data=omega)
 
 Based on this evidence, can you conclude that there is a significant difference between the experience of the male and female executives? Perform similar analyses as in the previous section. Does your conclusion validate or endanger your conclusion about the difference in male and female salaries?  
 
+H0 = There is no difference between the mean experience of males and females. mean(f)-mean(m) = 0
+HA = There is a difference between the mean experience of males and females. mean(f)-mean(m)!= 0
+
+```{r}
+#manual CI calculation:
+sumstatExp <- omega %>% 
+  group_by(gender) %>% 
+   summarise(mean = mean(experience),
+              n = count(gender),
+              sd = sd(experience),
+              t_critical = qt(0.975, n - 1),
+              se = sd / sqrt(n),
+              margin_of_error = t_critical * se,
+              low_CI= mean - margin_of_error,
+              high_CI= mean + margin_of_error,
+              )
+
+#t-test:
+t.test(experience ~ gender, data = omega)
+
+
+```
+Confidence intervals do not overlap and t-test gives a p value of 1e-05, so that we can reject the null hypothesis and there is a statistically sufficient evidence to conclude that there is a difference between the mean experience of men and women at work. 
 
 
 ## Relationship Salary - Experience ?
@@ -604,9 +636,15 @@ Analyse the relationship between salary and experience. Draw a scatterplot to vi
 
 ```{r, salary_exp_scatter}
 
+ggplot(omega, aes(x=experience, y=salary )) +
+  geom_point()+
+  geom_smooth()+
+  labs(title="Scatterplot of Experience vs Salary")+
+  theme_bw()
+
 
 ```
-
+There's a positive relationship between experience and salary up until 30 years, and then the trend line seems to flatten.
 
 ## Check correlations between the data
 You can use `GGally:ggpairs()` to create a scatterplot and correlation matrix. Essentially, we change the order our variables will appear in and have the dependent variable (Y), salary, as last in our list. We then pipe the dataframe to `ggpairs()` with `aes` arguments to colour by `gender` and make ths plots somewhat transparent (`alpha  = 0.3`).
@@ -620,6 +658,9 @@ omega %>%
 
 > Look at the salary vs experience scatterplot. What can you infer from this plot? Explain in a couple of sentences
 
+Women have a lot less experience and less salary and females have a stronger correlation between their experience and salary than males. Whereas males have more experience but there is less correlation between salary and experience. 
+It is interesting that women do not work in the company as long. We could look into why women have less experience at the company. Is it because they are having kids? or is it because they are not being promoted to management roles because they are women? 
+
 
 # Challenge 1: Brexit plot
 
@@ -630,8 +671,37 @@ Using your data manipulation and visualisation skills, please use the Brexit res
 knitr::include_graphics(here::here("images", "brexit.png"), error = FALSE)
 ```
 
+```{r}
+brexit <- read_csv(here::here("data", "brexit_results.csv"))
 
-# Challenge 1: CDC COVID-19 Public Use Data
+```
+
+```{r}
+glimpse(brexit)
+head(brexit)
+brexit <- brexit %>% 
+ 
+select(c("con_2015", "lab_2015", "ld_2015", "ukip_2015", "leave_share"))
+
+names(brexit) <- c("Conservative" ,"Labour", "Lib_Dems", "UKIP", "Leave_Share")
+
+
+long_brexit <- pivot_longer(brexit, c("Conservative" ,"Labour", "Lib_Dems", "UKIP"), names_to="party")
+
+ggplot(long_brexit, aes(x = value, y = Leave_Share, color=party ) ) +
+  geom_smooth(size=0.7, method = "lm" ) +
+  geom_point(size=0.7, alpha = 0.3) +
+  labs( title = "How political affiliation translated to Brexit voting",
+          x = "Part % in the UK 2015 general election",
+          y = "Leave share in the UK 2016 general election") +
+  theme_light() +
+  theme(legend.position = "bottom") +
+  scale_colour_manual(labels =  c("Conservative" ,"Labour", "Lib_Dems", "UKIP", "Leave_Share") ,
+                      values = c("#0087DC","#E4003B", "#FAA61A", "#EFE600"))
+   
+
+```
+#Challenge 2: CDC COVID-19 Public Use Data 
 
 The [CDC Covid-19 Case Surveillance Data](https://data.cdc.gov/Case-Surveillance/COVID-19-Case-Surveillance-Public-Use-Data/vbim-akqf) is a case surveillance public use dataset with 12 elements for all COVID-19 cases shared with CDC and includes demographics, any exposure history, disease severity indicators and outcomes, presence of any underlying medical conditions and risk behaviors. You can see the variables from 
 
